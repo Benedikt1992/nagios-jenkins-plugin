@@ -1,7 +1,7 @@
 Oculus
 ----------
-* Author:: Jon Cowie (<jonlives@gmail.com>)
-* Copyright:: Copyright (c) 2013 Jon Cowie
+* Author:: Jon Cowie (<jonlives@gmail.com>) Benedikt Bock (<mail@benedikt1992.de>)
+* Copyright:: Copyright (c) 2016
 * License:: MIT
 
 The MIT License

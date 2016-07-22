@@ -1,3 +1,11 @@
+# Change Notice
+
+In addition to the original scripts the following features where added:
+* check_jenkins_job_extended.pl
+  * Flags for the different parameters
+  * Connect via https
+  * Custom ca_file
+
 
 # Overview
 
