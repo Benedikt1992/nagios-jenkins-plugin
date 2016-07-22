@@ -65,14 +65,14 @@ sub main {
   $lsbThresholdWarn = $opts{w};
   $lsbThresholdCrit = $opts{c};
 
-  foreach (@ARGV)
-{
-  print "$_\n";
-}
   my $jobStatusUrlPrefix = $ciMasterUrl . "/job/" . uri_escape($jobName);
   my $jobStatusURL = $jobStatusUrlPrefix . "/api/json";
 
-  my $ua = LWP::UserAgent->new;
+  local $NET::HTTPS::SSL_SOCKET_CLASS = 'IO::Socket::SSL';
+  my $ua = LWP::UserAgent->new(ssl_opts => {
+    SSL_ca_file => "/etc/pki/tls/certs/ca-bundle.crt",
+  #  SSL_ca_path => "/etc/pki/tls/certs/",
+  });
   my $req = HTTP::Request->new( GET => $jobStatusURL );
 
   my $lastBuild = "";
@@ -96,7 +96,6 @@ sub main {
 
     # get content
     my $obj = $json->decode( $res->content );
-
     $exitCode = 0;
 
     my $buildname = $obj->{name};
@@ -131,12 +130,11 @@ sub main {
   }
 
   #Calculate build duration, and alert if needed
-  my $ua2 = LWP::UserAgent->new;
   my $req2 = HTTP::Request->new( GET => $lastBuildURL );
   if ( !$userName eq '' ) {
       $req2->authorization_basic( $userName, $password);
   }
-  my $res2 = $ua2->request($req2);
+  my $res2 = $ua->request($req2);
   $currentlyBuilding = "";
 
   if ( $res2->is_success ) {
@@ -178,12 +176,11 @@ sub main {
     my $firstFailedBuildApiURL = $firstFailedBuildURL . "/api/json";
 
     if ( $firstFailedBuildApiURL ne "" ) {
-      my $ua3 = LWP::UserAgent->new;
       my $req3 = HTTP::Request->new( GET => $firstFailedBuildApiURL );
       if ( !$userName eq '' ) {
         $req3->authorization_basic( $userName, $password);
       }
-      my $res3 = $ua3->request($req3);
+      my $res3 = $ua->request($req3);
 
       while ($res3->code == "404" && $firstFailedBuildId < $lastStableBuild + $numFailedBuilds)
       {
@@ -194,7 +191,7 @@ sub main {
         if ( !$userName eq '' ) {
           $req3->authorization_basic( $userName, $password);
         }
-        $res3 = $ua3->request($req3);
+        $res3 = $ua->request($req3);
       }
 
       if ( $res3->is_success ) {
