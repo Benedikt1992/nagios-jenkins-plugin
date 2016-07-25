@@ -38,6 +38,9 @@ my $buildDurThreshold;
 my $lsbThresholdWarn;
 my $lsbThresholdCrit;
 
+my $ssl_ca_file;
+my $ssl_ca_path;
+
 sub main {
   # Getopts:
   # j: Job name
@@ -48,8 +51,9 @@ sub main {
   # b: Build duration threshold
   # w: Last stable build warn threshold
   # c: Last stable build critical threshold
+  # s: SSL_ca_file
   my %opts;
-  getopts('j:l:u:p:f:b:w:c:', \%opts);
+  getopts('j:l:u:p:f:b:w:c:s:', \%opts);
 
   if (!$opts{j} || !$opts{l} || !looks_like_number($opts{w}) || !looks_like_number($opts{c}) || !looks_like_number($opts{f}) || !looks_like_number($opts{b})) {
       print STDERR "Missing option(s)\n\n";
@@ -64,14 +68,23 @@ sub main {
   $buildDurThreshold = $opts{b};
   $lsbThresholdWarn = $opts{w};
   $lsbThresholdCrit = $opts{c};
+  $ssl_ca_file = $opts{s};
+
+  if (!$ssl_ca_file) {
+    if($ENV{SSL_CERT_DIR}) {
+      $ssl_ca_path = $ENV{SSL_CERT_DIR};
+    } else {
+      $ssl_ca_path = "/etc/pki/tls/certs/";
+    }
+  }
 
   my $jobStatusUrlPrefix = $ciMasterUrl . "/job/" . uri_escape($jobName);
   my $jobStatusURL = $jobStatusUrlPrefix . "/api/json";
 
   local $NET::HTTPS::SSL_SOCKET_CLASS = 'IO::Socket::SSL';
   my $ua = LWP::UserAgent->new(ssl_opts => {
-    SSL_ca_file => "/etc/pki/tls/certs/ca-bundle.crt",
-  #  SSL_ca_path => "/etc/pki/tls/certs/",
+    SSL_ca_file => $ssl_ca_file,
+    SSL_ca_path => $ssl_ca_path,
   });
   my $req = HTTP::Request->new( GET => $jobStatusURL );
 
@@ -257,6 +270,11 @@ usage: $0 -j <job> -l <url> -w <threshold> -c <threshold> -f <number> -b <thresh
         -u <username>   : Jenkins Username if anonymous API access is not available
 
         -p <password>   : Jenkins Password if anonymous API access is not available
+
+        -s <path>       : Path to a SSL CA File which signes the jenkins certificate
+                          SSL CA Path is default '/etc/pki/tls/certs/'. Set 'SSL_CERT_DIR' to change.
+                          The Files must have hashed filenames as described by OpenSSL
+                          https://www.openssl.org/docs/manmaster/apps/c_rehash.html
 EOF
     exit 3;
 }
